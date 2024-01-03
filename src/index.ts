@@ -1,10 +1,7 @@
 import { Request, Response, NextFunction } from "express";
-import https, { RequestOptions } from "https";
+import axios, { AxiosRequestConfig } from "axios";
 import { URLSearchParams } from "url";
-
-// @see https://stackoverflow.com/a/64952911/4801329
-// for lazy people: it's not recommended to do this !
-https.globalAgent.options.rejectUnauthorized = false;
+import https from "https";
 
 export type Options = {
   host: string;
@@ -37,44 +34,34 @@ export function keycloakMiddleware({
         data.append("scope", "openid");
         data.append("token", token);
 
-        const requestOptions: RequestOptions = {
-          method: "POST",
+        const requestOptions: AxiosRequestConfig = {
+          method: "post",
+          url,
           headers: {
             "Content-Type": "application/x-www-form-urlencoded",
           },
+          data: data.toString(),
+          httpsAgent: new https.Agent({
+            rejectUnauthorized: false, // set to false
+          }),
         };
 
-        const req = https.request(url, requestOptions, (res) => {
-          let body = "";
+        const axiosResponse = await axios(requestOptions);
 
-          res.on("data", (chunk) => {
-            body += chunk;
+        const parsedBody = axiosResponse.data;
+
+        if (
+          parsedBody.hasOwnProperty("active") &&
+          parsedBody.active === false
+        ) {
+          return response.status(401).json({
+            error: true,
+            message: "Unauthorized",
           });
-
-          res.on("end", () => {
-            try {
-              const parsedBody = JSON.parse(body);
-
-              if (
-                parsedBody.hasOwnProperty("active") &&
-                parsedBody.active === false
-              ) {
-                return response.status(401).json({
-                  error: true,
-                  message: "Unauthorized",
-                });
-              } else {
-                // the token is valid pass request onto your next function
-                next();
-              }
-            } catch (error) {
-              next(error);
-            }
-          });
-        });
-
-        req.write(data.toString());
-        req.end();
+        } else {
+          // the token is valid pass request onto your next function
+          next();
+        }
       } catch (error) {
         next(error);
       }
