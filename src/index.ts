@@ -41,10 +41,13 @@ export function keycloakMiddleware({
             "Content-Type": "application/x-www-form-urlencoded",
           },
           data: data.toString(),
-          httpsAgent: new https.Agent({
-            rejectUnauthorized: false, // set to false
-          }),
         };
+
+        if (host.includes("https://")) {
+          requestOptions.httpsAgent = new https.Agent({
+            rejectUnauthorized: false,
+          });
+        }
 
         const axiosResponse = await axios(requestOptions);
 
