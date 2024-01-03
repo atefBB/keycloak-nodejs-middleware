@@ -1,6 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import https, { RequestOptions } from "https";
 import { URLSearchParams } from "url";
+const rootCas = require("ssl-root-cas").create();
+
+https.globalAgent.options.ca = rootCas;
 
 export type Options = {
   host: string;
