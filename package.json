@@ -1,6 +1,6 @@
 {
   "name": "keycloak-nodejs-middleware",
-  "version": "1.0.4",
+  "version": "1.2.0",
   "description": "Keycloak middleware for nodejs apps",
   "main": "./dist/cjs/index.js",
   "module": "./dist/index.js",
