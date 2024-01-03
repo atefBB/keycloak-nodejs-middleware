@@ -2,6 +2,8 @@ import { Request, Response, NextFunction } from "express";
 import https, { RequestOptions } from "https";
 import { URLSearchParams } from "url";
 
+// @see https://stackoverflow.com/a/64952911/4801329
+// for lazy people: it's not recommended to do this !
 https.globalAgent.options.rejectUnauthorized = false;
 
 export type Options = {
