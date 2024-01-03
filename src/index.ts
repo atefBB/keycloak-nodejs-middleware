@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import fetch, { Headers } from "node-fetch-commonjs";
+import https, { RequestOptions } from "https";
+import { URLSearchParams } from "url";
 
 export type Options = {
   host: string;
@@ -18,48 +19,58 @@ export function keycloakMiddleware({
     // assumes bearer token is passed as an authorization header
     if (request.headers.authorization) {
       try {
-        const myHeaders = new Headers();
+        const url = `${host}/realms/${realm}/protocol/openid-connect/token/introspect`;
 
-        myHeaders.append("Content-Type", "application/x-www-form-urlencoded");
-
-        const urlencoded = new URLSearchParams();
-
-        urlencoded.append("client_id", client_id);
-        urlencoded.append("grant_type", "password");
-        urlencoded.append("client_secret", client_secret);
-        urlencoded.append("scope", "openid");
-
-        // supposing that you send the token in the `authorization` header as follow:
-        // `authorization: Bearer ${token}`
         const token = (request.headers.authorization as string).replace(
           "Bearer ",
           ""
         );
-        urlencoded.append("token", token);
 
-        const requestOptions = {
+        const data = new URLSearchParams();
+        data.append("client_id", client_id);
+        data.append("grant_type", "password");
+        data.append("client_secret", client_secret);
+        data.append("scope", "openid");
+        data.append("token", token);
+
+        const requestOptions: RequestOptions = {
           method: "POST",
-          headers: myHeaders,
-          body: urlencoded,
-          redirect: "follow",
-          strictSSL: false,
-        } as any;
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+        };
 
-        const url = `${host}/realms/${realm}/protocol/openid-connect/token/introspect`;
-        const rawResponse = await fetch(url, requestOptions);
+        const req = https.request(url, requestOptions, (res) => {
+          let body = "";
 
-        let body: any = await rawResponse.text();
-        body = JSON.parse(body);
-
-        if (body.hasOwnProperty("active") && body.active === false) {
-          return response.status(401).json({
-            error: true,
-            message: "Unauthorized",
+          res.on("data", (chunk) => {
+            body += chunk;
           });
-        } else {
-          // the token is valid pass request onto your next function
-          next();
-        }
+
+          res.on("end", () => {
+            try {
+              const parsedBody = JSON.parse(body);
+
+              if (
+                parsedBody.hasOwnProperty("active") &&
+                parsedBody.active === false
+              ) {
+                return response.status(401).json({
+                  error: true,
+                  message: "Unauthorized",
+                });
+              } else {
+                // the token is valid pass request onto your next function
+                next();
+              }
+            } catch (error) {
+              next(error);
+            }
+          });
+        });
+
+        req.write(data.toString());
+        req.end();
       } catch (error) {
         next(error);
       }
