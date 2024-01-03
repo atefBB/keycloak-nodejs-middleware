@@ -9,7 +9,8 @@
   ],
   "scripts": {
     "build": "rm -fr ./dist && tsc -p tsconfig.json && tsc -p tsconfig-cjs.json",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "dev": "node-dev ./src/app.ts"
   },
   "keywords": [
     "keycloak",
