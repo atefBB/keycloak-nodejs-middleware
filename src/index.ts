@@ -1,29 +1,11 @@
 import { Request, Response, NextFunction } from "express";
-import fetch, { Headers, RequestInfo, RequestInit } from "node-fetch-commonjs";
-import { Agent } from "https";
-import { readFileSync } from "fs";
-import { join } from "path";
-
-// Path to the custom certificate bundle
-const customCertBundlePath = join(
-  __dirname,
-  "../node_modules/node_extra_ca_certs_mozilla_bundle/ca_bundle/ca_intermediate_root_bundle.pem"
-);
-
-// Read the custom certificate bundle
-const customCertBundle = readFileSync(customCertBundlePath, "utf-8");
+import fetch, { Headers } from "node-fetch-commonjs";
 
 export type Options = {
   host: string;
   realm: string;
   client_id: string;
   client_secret: string;
-};
-
-// Custom fetch function with the custom certificate bundle
-const customFetch = async (url: RequestInfo, options?: RequestInit) => {
-  const agent = new Agent({ ca: customCertBundle });
-  return fetch(url, { agent, ...options });
 };
 
 export function keycloakMiddleware({
@@ -60,10 +42,11 @@ export function keycloakMiddleware({
           headers: myHeaders,
           body: urlencoded,
           redirect: "follow",
+          strictSSL: false,
         } as any;
 
         const url = `${host}/realms/${realm}/protocol/openid-connect/token/introspect`;
-        const rawResponse = await customFetch(url, requestOptions);
+        const rawResponse = await fetch(url, requestOptions);
 
         let body: any = await rawResponse.text();
         body = JSON.parse(body);
