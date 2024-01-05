@@ -43,11 +43,9 @@ export function keycloakMiddleware({
           data: data.toString(),
         };
 
-        if (host.includes("https://")) {
-          requestOptions.httpsAgent = new https.Agent({
-            rejectUnauthorized: false,
-          });
-        }
+        requestOptions.httpsAgent = new https.Agent({
+          rejectUnauthorized: false,
+        });
 
         const axiosResponse = await axios(requestOptions);
 
